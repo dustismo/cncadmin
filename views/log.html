@@ -1,0 +1,46 @@
+<div class="well">
+    <div id="logcontainer"></div>
+</div>
+
+
+
+{{=<% %>=}}
+<!-- Handlebars Template sections -->
+
+<!-- Log entry template -->
+
+<script id="log-template" type="text/x-handlebars-template">
+  <div id="logentry{{id}}" class="{{type}}" style="display:none">{{message}}</div>
+</script>
+<%={{ }}=%>
+
+<script>
+  var strest = null
+  var log = new Log({
+    container : "#logcontainer"
+  })
+
+  $(document).ready(function() {
+    console.log($("#log-template").html())
+    strest = new Strest( {
+        url : "ws://localhost:8010/ws",
+        onopen : function(event) {
+                log.message("sysmsg", "CONNECTED!")
+                //register for the log messages
+                strest.sendRequest({
+                    uri : '/api/log'
+                  },
+                  function(response) {
+                    log.message(response.event.type, response.event.message)
+                  }
+                );
+              },
+        onclose : function(event) {
+                log.message("sysmsg", "DISCONNECTED!")
+              },
+        keepalive : true
+    });
+
+    strest.connect()
+  });
+</script>

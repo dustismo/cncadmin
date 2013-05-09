@@ -1,0 +1,285 @@
+
+<div class="row-fluid">
+  <div class="span4">
+    <!-- The service fields -->
+    <div id="service"></div>
+    <button class="btn btn-primary" href="#newService" data-toggle="modal">New Entry</button>
+  </div>
+  <div class="span8">
+    <!-- the log -->
+    <div id="logcontainer" style="height:200px;overflow:auto;" class="well"></div>
+  </div>
+</div>
+<div id="entries">
+
+</div>
+
+
+{{=<% %>=}}
+<!-- Handlebars Template sections -->
+
+<!-- Log entry template -->
+<script id="entries-template" type="text/x-handlebars-template">
+
+    <table id="user" class="table table-bordered table-striped" style="clear: both">
+      <tbody> 
+       <thead>
+        <tr>
+          <th>Id</th>
+          <th>Address</th>
+          <th>Http Port</th>
+          <th>Json Port</th>
+          <th>Partitions</th>
+        </tr>
+      </thead>
+        {{#entries}}
+          <tr>         
+              <td>{{id}}</td>
+              <td>{{address}}</td>
+              <td>{{ports.http}}</td>
+              <td>{{ports.json}}</td>
+              <td>
+                {{#each partitions}}
+                  <span>{{this}} ,</span> 
+                {{/each}}
+</td>
+          </tr>
+        {{/entries}}
+      </tbody>
+    </table>
+</script>
+
+<script id="service-template" type="text/x-handlebars-template">
+  <table id="user" class="table table-bordered table-striped" style="clear: both">
+      <tbody> 
+          <tr>         
+              <td>Service</td>
+              <td>
+                {{service}}
+              </td>
+          </tr>
+
+          <tr>         
+              <td>Revision</td>
+              <td>
+                {{revision}}
+              </td>
+          </tr>
+
+          <tr>         
+              <td>Total Partitions</td>
+              <td>
+                {{total_partitions}}
+              </td>
+          </tr>
+
+          <tr>         
+              <td>Replication Factor</td>
+              <td>
+                {{replication_factor}}
+              </td>
+          </tr>
+      </tbody>
+  </table>
+</script>
+<%={{ }}=%>
+
+<!-- The add new entry form -->
+<div id="newService" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="myModalLabel">Create New Entry</h3>
+  </div>
+  <form id="new-entry-form" class="form-horizontal">
+    <input type="hidden" name="service" value="{{service}}" />
+    <div class="modal-body">
+      <!-- full-name input-->
+      <div class="control-group">
+          <label class="control-label">Address</label>
+          <div class="controls">
+              <input id="address" name="address" type="text" placeholder="Address" required="true"
+              class="input-xlarge">
+              <p class="help-block">This should be Address of the new Shard.</p>
+          </div>
+      </div>
+      <div class="control-group">
+          <label class="control-label">Total Partitions</label>
+          <div class="controls">
+              <input id="total-partitions" name="total_partitions" type="number"
+              class="input-xlarge" value="512">
+              <p class="help-block">The total number of partitions for this service.  This value only
+                has an effect on the first entry.  This cannot be changed. choose wisely
+              </p>
+          </div>
+      </div>
+
+      <div class="control-group">
+          <label class="control-label">Http Port</label>
+          <div class="controls">
+              <input id="http-port" name="http_port" type="number"
+              class="input-xlarge" value="8010">
+              <p class="help-block"></p>
+          </div>
+      </div>
+      <div class="control-group">
+          <label class="control-label">Json Port</label>
+          <div class="controls">
+              <input id="json-port" name="json_port" type="number"
+              class="input-xlarge" value="8009">
+              <p class="help-block"></p>
+          </div>
+      </div>
+    </div>
+  </form>
+<div class="modal-footer">
+      <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+      <button class="btn btn-primary" onclick="newEntry();" data-dismiss="modal">Save</button>
+    </div>
+</div>
+
+
+<script>
+  var strest = null
+  var log = new Log({
+    container : "#logcontainer"
+  })
+  var RouterTable = Backbone.Model.extend({
+    //the service name
+    name : "",
+
+    parse : function(resp, options) {
+      console.log("PARSE!")
+      console.log(resp)
+      console.log(options)
+      return resp['router_table']
+    }
+
+
+  });
+  // var Entry = Backbone.Model.extend({});
+  // var Entries = Backbone.Collection.extend({
+  //   model: Entry
+  // });
+
+  // our global model
+  var RT = new RouterTable({
+    name : "{{service}}"
+  });
+
+  //The view
+  var RouterTableView = Backbone.View.extend({
+        // Cache the template function for a single item.
+    template: Handlebars.compile($('#service-template').html()),
+    entriesTemplate : Handlebars.compile($('#entries-template').html()),
+
+    el: $("#service"),
+
+    // // The DOM events specific to an item.
+    // events: {
+    //   "click .toggle"   : "toggleDone",
+    //   "dblclick .view"  : "edit",
+    //   "click a.destroy" : "clear",
+    //   "keypress .edit"  : "updateOnEnter",
+    //   "blur .edit"      : "close"
+    // },
+
+    // The TodoView listens for changes to its model, re-rendering. Since there's
+    // a one-to-one correspondence between a **Todo** and a **TodoView** in this
+    // app, we set a direct reference on the model for convenience.
+    initialize: function() {
+      this.listenTo(this.model, 'change', this.render);
+    },
+
+    // Re-render the titles of the todo item.
+    render: function() {
+      console.log("RENDER!")
+      console.log(this.model)
+      this.$el.html(this.template(this.model.attributes));
+      console.log(this.$el.children("#service-name"))
+      this.$el.find("#servicename").editable();
+      $("#entries").html(this.entriesTemplate(this.model.attributes))
+      return this;
+    }
+  });
+
+  var RTView = new RouterTableView({model : RT});
+
+  $(document).ready(function() {
+    console.log($("#log-template").html())
+    strest = new Strest( {
+        url : "ws://localhost:8010/ws",
+        onopen : function(event) {
+                log.message("sysmsg", "CONNECTED!")
+                //register for the log messages
+                strest.sendRequest({
+                    uri : '/api/log'
+                  },
+                  function(response) {
+                    log.message(response.event.type, response.event.message)
+                  }
+                );
+
+                RT.fetch();
+              },
+        onclose : function(event) {
+                log.message("sysmsg", "DISCONNECTED!")
+              },
+        keepalive : true
+    });
+
+    strest.connect()
+  });
+
+  newEntry = function(form) {
+    var params = Strest.formToObject($('#new-entry-form'));
+    //reset the modal.
+    $('#new-entry-form')[0].reset()
+
+    strest.sendRequest({
+      uri : "/api/shard/new",
+      method : "PUT",
+      params : params
+    }, 
+    RTResponse,
+    function(err) {
+      log.message("error", err)
+    })
+
+    console.log(params);
+  }
+  //the callback that includes the "router_table"  will trigger a rerender
+  RTResponse = function(response) {
+    //success
+    if (response.getStatusCode() != 200) {
+      //uhh, error!
+      log.message("error", response.getStatusMessage());
+      return;
+    }
+    //re-render that shit.
+    RT.set(RT.parse(response, {}))
+  }
+  //override the backbone sync to use the strest connector
+  Backbone.sync = function(method, model, options) {
+
+    if (method == "read") {
+      console.log(model.name)
+      strest.sendRequest({
+          uri : '/api/service',
+          method : "GET",
+          params : {
+            'service' : model.attributes.name
+          }
+        }, 
+        options.success,
+        options.error
+      );
+    }
+
+    console.log("SYNC!")
+    console.log(method)
+    console.log(model)
+    console.log(options)
+
+
+  }
+</script>
